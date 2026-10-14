@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Check, Copy, Download, Printer } from "lucide-react";
-import { DataState, PageHeader } from "@/components/page";
+import { DataState, NextStep, PageHeader } from "@/components/page";
 import { useScenarioResult } from "@/components/scenario-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,6 +81,7 @@ export default function BriefPage() {
           </article>
         ) : null}
       </DataState>
+      <NextStep />
     </>
   );
 }

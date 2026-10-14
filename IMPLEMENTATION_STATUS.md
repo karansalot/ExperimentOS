@@ -1,6 +1,6 @@
 # Implementation status
 
-Last updated: 2026-10-13. Scope of verified results: **full dataset, 13,979,592 rows** (plus a labelled ~5% development sample).
+Last updated: 2026-10-14. Scope of verified results: **full dataset, 13,979,592 rows** (plus a labelled ~5% development sample).
 
 ## Verification state
 
@@ -10,12 +10,14 @@ Last updated: 2026-10-13. Scope of verified results: **full dataset, 13,979,592 
 | Row count / rates vs dataset card | 13,979,592 rows; treatment 0.85; visit 0.046992; conversion 0.00292 | `pytest backend/tests/test_real_data.py` |
 | Data-quality rules | 12 of 12 pass on the full dataset | `artifacts/full/data_quality.json` |
 | SQL layer | 20 of 20 queries run on full and sample | `make pipeline-full` |
-| Backend tests | 119 pass (synthetic ground-truth fixture + real-data checks) | `make test` |
+| Backend tests | 120 pass (synthetic ground-truth fixture + real-data checks) |
+| TypeScript parity tests | 15 pass: the in-browser simulator, brief and planner match Python to 1e-6 | `cd frontend && pnpm test` | `make test` |
 | Lint / types | ruff, tsc, ESLint clean | `make lint` |
 | Production build | succeeds | `cd frontend && pnpm build` |
-| End-to-end tests | 15 pass | `make test-e2e` |
-| GitHub Actions | workflow written, **not yet executed** (no remote) | push to GitHub |
+| End-to-end tests | 22 pass against the Python-backed app, the static build, and the live Netlify site | `make test-e2e` |
+| GitHub Actions | workflow written, **not yet executed**: runs on the first push | push to GitHub |
 | Docker images | files written, **not built** (Docker unavailable locally) | `docker compose up --build` |
+| Hosting | **live** at https://experimentos-karansalot.netlify.app (static build) | `make static && netlify deploy --prod --dir frontend/out` |
 
 ## Phases
 
@@ -74,6 +76,15 @@ Effects and model metrics were unchanged by the rerun (same seed). The default-s
 
 The Overview page moved from `/` to `/overview`.
 
+## Added in the fourth iteration (2026-10-14)
+
+| Feature | Where | Verified by |
+|---|---|---|
+| Static hosting: export of every API response, raw artifacts and bootstrap arrays | `export_static.py`, `frontend/public/data/` | `test_static_export_mirrors_the_api` |
+| TypeScript port of the decision simulator, brief, planner and sequential lab | `frontend/src/lib/static/` | 15 Vitest parity tests against Python fixtures |
+| Netlify deployment with cache and security headers | `netlify.toml` | e2e suite run against the live URL |
+| Usability: plain-English summaries, glossary popovers and page, first-visit guide, next-step links, theme switch, mobile drawer, presets, CSV export, skeleton loaders, skip link | `frontend/src/components/` | 7 usability e2e tests |
+
 ## Deviations from the brief, and why
 
 - **Polars / Pandas not used directly.** DuckDB does all tabular work and NumPy/PyArrow carry arrays; adding a dataframe library would have been decoration. (pandas is installed only as a statsmodels dependency.)
@@ -87,6 +98,7 @@ The Overview page moved from `/` to `/overview`.
 ## Known gaps and honest caveats
 
 - **Docker images are unbuilt** (see table above).
+- **The GitHub repository has not received a push from this machine**: no GitHub credentials are stored here; the push must be authenticated by the owner.
 - **Permutation importance uses a labelled 300,000-row sample** of the test split; everything else uses all rows.
 - **On-demand training is development-sample only.** Full-data training is a CLI job by design. A retrain with a non-default seed reuses the cached cross-fitted nuisance scores.
 - **Segment p-values and the heterogeneity test use the unadjusted effect**; the adjusted segment effect is shown with its own interval only.
@@ -95,7 +107,6 @@ The Overview page moved from `/` to `/overview`.
 - **Bootstrap bin edges are fixed** at the point-estimate ranking (scores are not re-ranked per replicate, which is correct for fixed models, but model-fitting variance is not included).
 - **Dark and light themes** follow the operating system; there is no manual toggle.
 - **No authentication.**
-- **Not committed.** `git init` was run; nothing has been committed or pushed.
 
 ## Timings (10-core Apple Silicon laptop, 24 GB RAM)
 

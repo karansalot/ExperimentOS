@@ -12,6 +12,21 @@ ExperimentOS has two processes: a FastAPI service that serves cached artifacts a
 
 The API does not need the dataset. Without `data/`, everything works except on-demand retraining, which returns HTTP 409 with an explanation and is disabled in the UI.
 
+## Hosted demo on Netlify (static, no server)
+
+Live: <https://experimentos-karansalot.netlify.app>
+
+The hosted build needs no Python service. Cached results are exported to static files, and the interactive calculators run in the browser (a TypeScript port, parity-tested against Python).
+
+```bash
+make static                                   # export data + build frontend/out
+netlify deploy --prod --dir frontend/out      # or: make deploy NETLIFY_SITE_ID=<id>
+```
+
+For automatic deploys on every push, connect the GitHub repo in the Netlify UI (Add new project → Import from Git). `netlify.toml` already sets the base directory, build command (`pnpm build:static`), publish directory (`out`), Node version and cache/security headers. Refresh `frontend/public/data/` with `make static` whenever the pipeline is re-run, and commit it.
+
+What differs from the full app: on-demand retraining is disabled (it needs the Python backend and row-level data), and the sequential lab's simulation uses a JavaScript random-number generator, so its figures differ from Python's in the third decimal.
+
 ## Local
 
 ```bash
@@ -63,4 +78,6 @@ These files were written but **not built or run in the development environment**
 2. **Artifact check:** every committed artifact is strict JSON and correctly labelled full vs sample.
 3. **Frontend:** type-check, ESLint, production build, then Playwright end-to-end tests against the real API serving the committed artifacts.
 
-The workflow has not been executed on GitHub yet (the repository has no remote); the same commands pass locally.
+4. **Hosted build:** `pnpm build:static`, then the Playwright suite against the exported site served as plain files.
+
+The same suite has also been run against the live Netlify URL (`E2E_BASE_URL=https://experimentos-karansalot.netlify.app pnpm test:e2e`): 22/22 passed.

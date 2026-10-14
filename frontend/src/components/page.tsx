@@ -1,14 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { AlertTriangle, ArrowRight, CheckCircle2, Info, MessageSquareText, XCircle } from "lucide-react";
+import { NAV } from "@/components/shell";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { Meta } from "@/lib/api";
 import { int } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export function PageHeader({ title, description, meta, children }: { title: string; description: string; meta?: Meta | null; children?: React.ReactNode }) {
+export function PageHeader({ title, description, meta, children, summary }: { title: string; description: React.ReactNode; meta?: Meta | null; children?: React.ReactNode; summary?: React.ReactNode[] | null }) {
+  React.useEffect(() => {
+    document.title = `${title} · ExperimentOS`;
+  }, [title]);
   return (
     <header className="mb-6 flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -26,6 +32,7 @@ export function PageHeader({ title, description, meta, children }: { title: stri
           </div>
         ) : null}
       </div>
+      {summary && summary.length ? <PlainEnglish points={summary} /> : null}
       {children ? <div className="no-print flex flex-wrap items-end gap-3">{children}</div> : null}
     </header>
   );
@@ -70,6 +77,52 @@ export function StatusBadge({ ok, okLabel = "Pass", failLabel = "Fail" }: { ok: 
   );
 }
 
+/** "In plain English": a short, jargon-free summary at the top of each analysis page. */
+export function PlainEnglish({ points }: { points: React.ReactNode[] }) {
+  return (
+    <section className="rounded-lg border border-border bg-surface px-4 py-3" aria-label="In plain English" data-testid="plain-english">
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">
+        <MessageSquareText className="h-3.5 w-3.5" aria-hidden /> In plain English
+      </div>
+      <ul className="flex flex-col gap-1 text-sm leading-relaxed">
+        {points.map((p, i) => (
+          <li key={i} className="flex gap-2"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent" aria-hidden /><span className="min-w-0">{p}</span></li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Guides the reader to the next page in the story. */
+export function NextStep() {
+  const pathname = usePathname();
+  const i = NAV.findIndex((n) => (n.href === "/" ? pathname === "/" : pathname.startsWith(n.href)));
+  const next = i >= 0 ? NAV[i + 1] : undefined;
+  if (!next) return null;
+  return (
+    <Link href={next.href} className="no-print mt-8 flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-5 py-4 transition-colors hover:bg-wash focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" data-testid="next-step">
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">Next</div>
+        <div className="text-sm font-semibold">{next.label}</div>
+        <div className="text-xs text-secondary">{next.hint}</div>
+      </div>
+      <ArrowRight className="h-5 w-5 text-accent" aria-hidden />
+    </Link>
+  );
+}
+
+function Skeleton() {
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => <div key={i} className="skeleton h-[92px]" />)}
+      </div>
+      <div className="skeleton h-[300px]" />
+      <div className="skeleton h-[180px]" />
+    </div>
+  );
+}
+
 export function DataState({ loading, error, hasData, children }: { loading: boolean; error: string | null; hasData: boolean; children: React.ReactNode }) {
   if (error && !hasData)
     return (
@@ -77,7 +130,7 @@ export function DataState({ loading, error, hasData, children }: { loading: bool
         <strong className="font-semibold">Could not load this view.</strong> {error}
       </div>
     );
-  if (!hasData) return <div className="py-16 text-center text-sm text-muted" aria-busy="true">Loading…</div>;
+  if (!hasData) return <Skeleton />;
   return (
     <div className={cn("transition-opacity", loading && "opacity-60")} aria-busy={loading}>
       {error ? (

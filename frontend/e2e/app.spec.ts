@@ -23,7 +23,7 @@ test.describe("full dataset", () => {
     }
     await expect(page.getByTestId("concentration-chart").locator("path.recharts-line-curve")).toHaveCount(3);
     await page.getByTestId("insight-inflation").click();
-    await expect(page).toHaveURL(/\/diagnostics$/);
+    await expect(page).toHaveURL(/\/diagnostics\/?$/);
     await expect(page.getByTestId("variance-reduction")).toContainText("larger unadjusted experiment");
   });
 
@@ -201,14 +201,89 @@ test.describe("full dataset", () => {
   test("the browser never receives row-level data", async ({ page }) => {
     const sizes: number[] = [];
     page.on("response", async (res) => {
-      if (res.url().includes("/api/")) sizes.push((await res.body().catch(() => Buffer.alloc(0))).length);
+      // Python API responses, or the static export's data files in the hosted build
+      if (res.url().includes("/api/") || res.url().includes("/data/")) sizes.push((await res.body().catch(() => Buffer.alloc(0))).length);
     });
     for (const path of ["/", "/overview", "/diagnostics", "/models", "/simulator", "/brief", "/planner", "/sequential", "/sql"]) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
     }
     expect(sizes.length).toBeGreaterThan(8);
-    expect(Math.max(...sizes)).toBeLessThan(500_000); // aggregates only, for a 14M-row dataset
+    expect(Math.max(...sizes)).toBeLessThan(500_000); // aggregates only (largest: one bootstrap array), for a 14M-row dataset
+  });
+});
+
+test.describe("usability", () => {
+  test.beforeEach(async ({ page }) => useScope(page, "full"));
+
+  test("every analysis page explains itself in plain English and points to the next step", async ({ page }) => {
+    for (const path of ["/overview", "/diagnostics", "/models", "/simulator", "/planner", "/sequential", "/sql"]) {
+      await page.goto(path);
+      await expect(page.getByTestId("plain-english").locator("li").first()).toBeVisible();
+      await expect(page.getByTestId("next-step")).toBeVisible();
+    }
+  });
+
+  test("glossary terms show definitions and the glossary is searchable", async ({ page }) => {
+    await page.goto("/overview");
+    await page.getByRole("button", { name: /Percentage point.*definition/ }).first().hover();
+    await expect(page.getByText("The difference between two percentages")).toBeVisible();
+    await page.goto("/glossary");
+    await page.getByTestId("glossary-search").fill("peeking");
+    await expect(page.getByTestId("glossary-list").locator("dt")).toHaveCount(1);
+  });
+
+  test("theme switch overrides the system setting and persists", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("radio", { name: "Dark theme" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.getByRole("radio", { name: "System theme" }).click();
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme", /./);
+  });
+
+  test("simulator presets fill in assumptions", async ({ page }) => {
+    await page.goto("/simulator");
+    await page.getByTestId("presets").getByRole("button", { name: "Tight budget" }).click();
+    await expect(page.getByTestId("sc-budget")).toHaveValue("5000");
+    await expect(page.getByTestId("budget-callout")).toBeVisible();
+    await page.getByTestId("presets").getByRole("button", { name: "Conversion campaign" }).click();
+    await expect(page.getByTestId("sc-outcome")).toHaveValue("conversion");
+  });
+
+  test("tables download as CSV", async ({ page }) => {
+    await page.goto("/simulator");
+    await expect(page.getByTestId("strategy-table")).toBeVisible();
+    const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download strategy-comparison.csv" }).click()]);
+    expect(dl.suggestedFilename()).toBe("strategy-comparison.csv");
+    let text = "";
+    for await (const chunk of await dl.createReadStream()) text += chunk.toString();
+    expect(text.split("\n")[0]).toContain("strategy,coverage_pct");
+    expect(text.split("\n").length).toBe(8);
+  });
+
+  test("works on a phone: menu opens and the page never scrolls sideways", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const path of ["/", "/overview", "/simulator", "/models"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
+    }
+    await page.getByTestId("menu-button").click();
+    await page.getByRole("link", { name: "Experiment planner" }).click();
+    await expect(page).toHaveURL(/\/planner\/?$/);
+  });
+
+  test("first-visit guide can be dismissed", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => localStorage.removeItem("experimentos.welcome-dismissed"));
+    await page.reload();
+    await expect(page.getByTestId("welcome")).toBeVisible();
+    await page.getByRole("button", { name: "Dismiss the introduction" }).click();
+    await page.reload();
+    await expect(page.getByTestId("hero")).toBeVisible();
+    await expect(page.getByTestId("welcome")).toHaveCount(0);
   });
 });
 

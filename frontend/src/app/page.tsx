@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ArrowRight, Github } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartTooltip } from "@/components/charts/tooltip";
-import { DataState, Legend } from "@/components/page";
+import { DataState, Legend, NextStep } from "@/components/page";
+import { Term } from "@/components/term";
+import { Welcome } from "@/components/welcome";
 import { useApp } from "@/components/providers";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +28,9 @@ const PIPELINE = [
 export default function InsightsPage() {
   const { scope } = useApp();
   const { data, error, loading } = useApi<any>(scope ? withScope("/insights", scope) : null);
+  React.useEffect(() => {
+    document.title = "ExperimentOS · Insights";
+  }, []);
   const h = data?.headline;
   const conc = data?.concentration;
 
@@ -33,6 +38,7 @@ export default function InsightsPage() {
     <DataState loading={loading} error={error} hasData={!!data}>
       {data ? (
         <div className="flex flex-col gap-6">
+          <Welcome />
           <section className="rounded-lg border border-border bg-surface px-6 py-7 sm:px-8" data-testid="hero">
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={data.meta.is_sample ? "warning" : "accent"} data-testid="scope-badge">
@@ -45,7 +51,7 @@ export default function InsightsPage() {
               Advertising works. Raw numbers overstate it, and a small group of users carries most of the effect.
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-secondary">
-              ExperimentOS analyses a {compact(h.users)}-user randomised advertising experiment end to end: is the effect real, how large is it once the arms are made comparable, who drives it, and what should we do about it. Every number below is computed from the data and links to its evidence.
+              ExperimentOS analyses a {compact(h.users)}-user randomised advertising experiment end to end: is the effect real, how large is it once the two groups are made comparable, who drives it (the <Term k="persuadables">persuadables</Term>), and what to do about it. Every number below is computed from the data and links to its evidence.
             </p>
             <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-4">
               {[
@@ -67,7 +73,7 @@ export default function InsightsPage() {
             <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3" data-testid="insight-grid">
               {data.insights.map((i: any) => (
                 <Link key={i.id} href={i.href} data-testid={`insight-${i.id}`}
-                  className="group flex flex-col rounded-lg border border-border bg-surface p-5 transition-colors hover:bg-black/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:hover:bg-white/[0.03]">
+                  className="group flex flex-col rounded-lg border border-border bg-surface p-5 transition-colors hover:bg-wash focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ">
                   <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted">
                     <span className="h-2 w-2 rounded-full" style={{ background: TONE[i.tone] }} aria-hidden />
                     {i.kicker}
@@ -127,6 +133,7 @@ export default function InsightsPage() {
               ))}
             </ol>
           </section>
+          <NextStep />
         </div>
       ) : null}
     </DataState>

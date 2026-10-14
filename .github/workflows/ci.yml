@@ -71,6 +71,8 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: cd frontend && pnpm install --frozen-lockfile
       - run: cd frontend && pnpm typecheck && pnpm lint
+      # The in-browser TypeScript port of the simulator, brief and planner must match Python.
+      - run: cd frontend && pnpm test
       - run: cd frontend && API_URL=http://127.0.0.1:8765 pnpm build
       - run: cd frontend && pnpm exec playwright install --with-deps chromium
       # Runs the dashboard against the real API serving the committed (cached) artifacts.
@@ -80,3 +82,24 @@ jobs:
         with:
           name: playwright-report
           path: frontend/playwright-report
+
+  hosted:
+    name: Hosted (static) build and end-to-end
+    runs-on: ubuntu-latest
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: cd frontend && pnpm install --frozen-lockfile
+      # Exactly what Netlify builds: cached data files + in-browser calculators, no Python service.
+      - run: cd frontend && pnpm build:static
+      - run: cd frontend && pnpm exec playwright install --with-deps chromium
+      - run: cd frontend && E2E_STATIC=1 pnpm test:e2e

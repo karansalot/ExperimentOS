@@ -5,7 +5,7 @@ import { Play } from "lucide-react";
 import { CalibrationChart } from "@/components/charts/calibration-chart";
 import { CurveChart } from "@/components/charts/curve-chart";
 import { ExplainPanel } from "@/components/explain-panel";
-import { Callout, DataState, PageHeader } from "@/components/page";
+import { Callout, DataState, NextStep, PageHeader } from "@/components/page";
 import { useApp } from "@/components/providers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, Input, Select } from "@/components/ui/form";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api, useApi, withScope } from "@/lib/api";
+import { STATIC_MODE, api, useApi, withScope } from "@/lib/api";
 import { MODEL_COLOR, OUTCOME_LABEL, int, num, pct, pp } from "@/lib/format";
+import { Term } from "@/components/term";
+import { CsvButton } from "@/components/csv-button";
 
 const k = (v: number | undefined | null, d = 2) => (v == null ? "–" : (v * 1000).toFixed(d));
 const ci = (m: any, d = 2) => (m?.low == null ? "" : `${k(m.low, d)} to ${k(m.high, d)}`);
@@ -115,7 +117,9 @@ function TrainingPanel({ run, rows, onDone }: { run: any; rows: any; onDone: () 
               <p role="alert" className="mt-2 text-[11px] text-critical">Training failed: {status.error}</p>
             ) : (
               <p className="mt-2 text-[11px] leading-snug text-muted">
-                {status?.can_train === false
+                {STATIC_MODE
+                  ? "This hosted demo serves cached results; retraining runs with the Python backend (clone the repo and run make api)."
+                  : status?.can_train === false
                   ? "Row-level data is not on this server, so training is disabled. Cached results are still served."
                   : "Runs in the background (about 20 seconds) and replaces the development-sample results only. Full-dataset training is a CLI job."}
               </p>
@@ -156,6 +160,15 @@ export default function ModelsPage() {
         title="Uplift model lab"
         description="Who responds to treatment? Five targeting strategies trained on 60% of users and compared on a 20% test split none of them saw."
         meta={m?.meta}
+        summary={
+          m && champ
+            ? [
+                <>Four targeting models were trained on 60% of users and scored on 20% they had never seen, against random targeting.</>,
+                <>The best (<strong>{champ.name}</strong>) finds a top 10% whose <Term k="uplift">uplift</Term> is {(champ.test_metrics[`uplift_at_10_${basis}`].value / champ.test_metrics[`total_effect_${basis}`].value).toFixed(0)}× the average user&apos;s.</>,
+                <>A simple <Term k="response">response model</Term> does nearly as well: choosing to target matters more than which model you use.</>,
+              ]
+            : null
+        }
       >
         <Field label="Outcome" htmlFor="m-outcome">
           <Select id="m-outcome" data-testid="model-outcome" value={outcome} onChange={(e) => { setOutcome(e.target.value); setSelected(null); }} className="w-40">
@@ -226,6 +239,16 @@ export default function ModelsPage() {
                     })}
                   </TBody>
                 </Table>
+                <div className="mt-3 flex justify-end">
+                  <CsvButton
+                    filename={`model-comparison-${outcome}-${basis}.csv`}
+                    columns={["model", "is_champion", `gain_over_random_${basis}`, "ci_low", "ci_high", "diff_vs_response", "prob_beats_response", `uplift_at_10_${basis}`, "qini_coefficient", "validation_gain", "version"]}
+                    rows={m.models.map((x: any) => {
+                      const g = x.test_metrics[gor];
+                      return [x.name, x.is_champion, g.value, g.low, g.high, g.vs_reference?.difference ?? "", g.vs_reference?.prob_better ?? "", x.test_metrics[`uplift_at_10_${basis}`].value, x.test_metrics.qini_coefficient.value, x.validation_metrics[gor], x.version];
+                    })}
+                  />
+                </div>
                 <p className="mt-3 text-[12px] leading-relaxed text-muted">
                   The response model reuses the T-learner’s treated-arm model, so it has no separate fit time. Qini coefficient uses the classic unadjusted construction regardless of the basis selected above.
                 </p>
@@ -320,6 +343,7 @@ export default function ModelsPage() {
           </div>
         ) : null}
       </DataState>
+      <NextStep />
     </>
   );
 }

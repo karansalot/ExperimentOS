@@ -22,7 +22,19 @@ export class ApiError extends Error {
   }
 }
 
+/** Hosted (static) build: no Python API; data comes from exported files and calculators run in the browser. */
+export const STATIC_MODE = process.env.NEXT_PUBLIC_DATA_MODE === "static";
+
 export async function api<T = any>(path: string, init?: RequestInit): Promise<T> {
+  if (STATIC_MODE) {
+    const { staticApi, StaticApiError } = await import("./static");
+    try {
+      return await staticApi(path, init);
+    } catch (e: any) {
+      if (e instanceof StaticApiError) throw new ApiError(e.status, e.message);
+      throw new ApiError(500, e?.message ?? "Unexpected error");
+    }
+  }
   const res = await fetch(`/api${path}`, { ...init, headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
   if (!res.ok) {
     let detail = res.statusText;

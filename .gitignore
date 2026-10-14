@@ -16,3 +16,5 @@ artifacts/_jobs/
 .claude/
 *.tsbuildinfo
 next-env.d.ts
+out
+.next-static

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ForestPlot } from "@/components/charts/forest";
-import { Callout, DataState, PageHeader, StatTile, StatusBadge } from "@/components/page";
+import { Callout, DataState, NextStep, PageHeader, StatTile, StatusBadge } from "@/components/page";
 import { useApp } from "@/components/providers";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { Field, Select } from "@/components/ui/form";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { useApi, withScope } from "@/lib/api";
 import { OUTCOME_LABEL, int, num, pct, pp, pval, signedPct } from "@/lib/format";
+import { Term } from "@/components/term";
+import { CsvButton } from "@/components/csv-button";
 
 export default function DiagnosticsPage() {
   const { scope, meta } = useApp();
@@ -32,6 +34,17 @@ export default function DiagnosticsPage() {
         title="Statistical diagnostics"
         description="Can the comparison be trusted? Randomisation checks, hypothesis tests, and how the effect differs across segments."
         meta={d?.meta}
+        summary={
+          d
+            ? [
+                d.srm.mismatch_detected
+                  ? <>Warning: the group sizes do not match the planned 85/15 split (<Term k="srm">sample ratio mismatch</Term>), which usually means assignment or logging is broken.</>
+                  : <>The 85/15 split matches the plan, so assignment was not broken (<Term k="srm">sample ratio check</Term> passes).</>,
+                <>But the groups differ slightly in who they contain{c2 ? <> (a model tells them apart with <Term k="auc">AUC</Term> {num(c2.auc, 3)})</> : null}. That is enough to inflate a naive comparison, so <Term k="adjusted">adjusted</Term> estimates are shown alongside.</>,
+                <>The effect differs a lot between <Term k="segment">segments</Term>: ads work far better for some users than for others.</>,
+              ]
+            : null
+        }
       />
       <DataState loading={diag.loading} error={diag.error} hasData={!!d}>
         {d ? (
@@ -174,6 +187,15 @@ export default function DiagnosticsPage() {
                     </Select>
                   </Field>
                   {f ? (
+                    <div className="pb-0.5">
+                      <CsvButton
+                        filename={`segments-${outcome}-${feature}.csv`}
+                        columns={["feature", "segment", "value_min", "value_max", "n_users", "rate_control", "rate_treatment", "absolute_effect", "ci_low", "ci_high", "adjusted_effect", "adjusted_ci_low", "adjusted_ci_high", "p_value", "p_value_bh", "p_value_holm"]}
+                        rows={f.segments.map((s: any) => [s.feature, s.segment, s.value_min, s.value_max, s.n_users, s.rate_control, s.rate_treatment, s.absolute_effect, s.ci_low, s.ci_high, s.adjusted_effect, s.adjusted_ci_low, s.adjusted_ci_high, s.p_value, s.p_value_bh, s.p_value_holm])}
+                      />
+                    </div>
+                  ) : null}
+                  {f ? (
                     <div className="flex items-center gap-2 pb-1.5 text-xs text-secondary">
                       <Badge variant={f.heterogeneity.p_value_holm < 0.05 ? "accent" : "neutral"}>
                         Heterogeneity: Cochran Q = {num(f.heterogeneity.q, 1)}, p (Holm) {pval(f.heterogeneity.p_value_holm)}
@@ -239,6 +261,7 @@ export default function DiagnosticsPage() {
           </div>
         ) : null}
       </DataState>
+      <NextStep />
     </>
   );
 }

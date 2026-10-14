@@ -6,7 +6,9 @@ import { useApp } from "@/components/providers";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/form";
 import { Slider } from "@/components/ui/slider";
+import { api } from "@/lib/api";
 import { OUTCOME_LABEL } from "@/lib/format";
+import type { Scenario } from "@/lib/scenario";
 
 const STRATEGIES = [
   ["champion", "Champion uplift model"],
@@ -43,10 +45,34 @@ function NumberField({ id, label, hint, value, onChange, step, min = 0, placehol
   );
 }
 
+const PRESETS: { label: string; hint: string; patch: Partial<Scenario> }[] = [
+  { label: "Cheap display ad", hint: "0.02 per user, 3 per visit", patch: { outcome: "visit", cost_per_user: 0.02, value_per_outcome: 3, budget: null, risk: "moderate" } },
+  { label: "Premium placement", hint: "0.20 per user, 8 per visit", patch: { outcome: "visit", cost_per_user: 0.2, value_per_outcome: 8, budget: null, risk: "moderate" } },
+  { label: "Tight budget", hint: "budget capped at 5,000", patch: { outcome: "visit", cost_per_user: 0.05, value_per_outcome: 5, budget: 5000 } },
+  { label: "Conversion campaign", hint: "40 per conversion", patch: { outcome: "conversion", cost_per_user: 0.05, value_per_outcome: 40, budget: null } },
+  { label: "Play it safe", hint: "optimise a bad-case outcome", patch: { risk: "conservative" } },
+];
+
 export function ScenarioForm() {
   const { scenario: s, setScenario, resetScenario, meta } = useApp();
   return (
     <div className="flex flex-col gap-4">
+      <div>
+        <div className="mb-1.5 text-xs font-medium text-secondary">Quick start</div>
+        <div className="flex flex-wrap gap-1.5" data-testid="presets">
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              title={p.hint}
+              onClick={() => setScenario(p.patch)}
+              className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-secondary transition-colors hover:bg-wash hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <Field label="Outcome to value" htmlFor="sc-outcome">
         <Select id="sc-outcome" data-testid="sc-outcome" value={s.outcome} onChange={(e) => setScenario({ outcome: e.target.value })}>
           {(meta?.outcomes ?? ["visit", "conversion"]).map((o) => <option key={o} value={o}>{OUTCOME_LABEL[o]}</option>)}
@@ -102,10 +128,8 @@ export function useScenarioResult<T = any>(path: "/simulate" | "/brief") {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api${path}?scope=${scope}`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-        const json = await res.json();
+        const json = await api<T>(`${path}?scope=${scope}`, { method: "POST", body });
         if (cancelled) return;
-        if (!res.ok) throw new Error(typeof json.detail === "string" ? json.detail : "The scenario is not valid.");
         setData(json);
         setError(null);
       } catch (e: any) {

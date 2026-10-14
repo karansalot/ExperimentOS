@@ -3,12 +3,14 @@
 import * as React from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartTooltip } from "@/components/charts/tooltip";
-import { Callout, DataState, Legend, PageHeader, StatTile } from "@/components/page";
+import { Callout, DataState, Legend, NextStep, PageHeader, StatTile } from "@/components/page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/form";
 import { Slider } from "@/components/ui/slider";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { api } from "@/lib/api";
 import { pct } from "@/lib/format";
+import { Term } from "@/components/term";
 
 const COLOR: Record<string, string> = { naive: "var(--series-response)", pocock: "var(--series-two-model)", obrien_fleming: "var(--series-t-learner)" };
 const SHORT: Record<string, string> = { naive: "Naive peeking", pocock: "Pocock", obrien_fleming: "O'Brien-Fleming" };
@@ -26,9 +28,7 @@ export default function SequentialPage() {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await fetch("/api/sequential", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ n_looks: looks, alpha, power }) });
-        const json = await res.json();
-        if (!res.ok) throw new Error("Invalid design");
+        const json = await api("/sequential", { method: "POST", body: JSON.stringify({ n_looks: looks, alpha, power }) });
         if (!cancelled) {
           setData(json);
           setError(null);
@@ -52,6 +52,14 @@ export default function SequentialPage() {
       <PageHeader
         title="Sequential testing lab"
         description="Why you can't keep checking an experiment until it looks significant, and how alpha-spending boundaries let you stop early safely."
+        summary={
+          d
+            ? [
+                <>If you check a test {looks} times and stop at the first &quot;significant&quot; result, false alarms rise from {pct(alpha, 0)} to <strong>{pct(d.naive.false_positive_rate, 0)}</strong>. That is <Term k="peeking">peeking</Term>.</>,
+                <><Term k="obf">O&apos;Brien-Fleming</Term> boundaries keep false alarms at {pct(d.obrien_fleming.false_positive_rate, 1)} and still stop early, using {pct(d.obrien_fleming.expected_sample_fraction, 0)} of the planned users on average when the effect is real.</>,
+              ]
+            : null
+        }
       >
         <div className="w-56">
           <div className="mb-1.5 flex items-baseline justify-between">
@@ -152,6 +160,7 @@ export default function SequentialPage() {
           </div>
         ) : null}
       </DataState>
+      <NextStep />
     </>
   );
 }

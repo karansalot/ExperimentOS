@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { DataState, PageHeader, StatusBadge } from "@/components/page";
+import { DataState, NextStep, PageHeader, StatusBadge } from "@/components/page";
 import { useApp } from "@/components/providers";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { useApi, withScope } from "@/lib/api";
 import { int, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { CsvButton } from "@/components/csv-button";
 
 const cell = (v: any) => (v == null ? "–" : typeof v === "number" ? (Number.isInteger(v) ? v.toLocaleString("en-US") : String(v)) : String(v));
 
@@ -26,6 +27,15 @@ export default function SqlPage() {
         title="SQL & data quality"
         description="The analytical layer behind the dashboards: DuckDB views and queries over Parquet, plus the validation rules every pipeline run must pass."
         meta={catalog.data?.meta}
+        summary={
+          dq.data
+            ? [
+                <>{dq.data.checks.filter((c: any) => c.passed).length} of {dq.data.checks.length} data checks pass on {int(dq.data.profile.n_users)} rows.</>,
+                <>The raw file is stored in single-arm blocks, so every sample and split here uses a hash of row position, never &quot;the first N rows&quot;.</>,
+                <>Each query below states the question it answers. Pick one to see its SQL and its result.</>,
+              ]
+            : null
+        }
       />
       <div className="flex flex-col gap-4">
         <DataState loading={dq.loading} error={dq.error} hasData={!!dq.data}>
@@ -96,7 +106,7 @@ export default function SqlPage() {
                         <button
                           onClick={() => setId(x.id)}
                           aria-current={x.id === id}
-                          className={cn("w-full rounded-md px-3 py-2 text-left transition-colors", x.id === id ? "bg-accent-soft" : "hover:bg-black/5 dark:hover:bg-white/5")}
+                          className={cn("w-full rounded-md px-3 py-2 text-left transition-colors", x.id === id ? "bg-accent-soft" : "hover:bg-wash ")}
                         >
                           <div className="flex items-center justify-between gap-2 text-[13px] font-medium">
                             <span><span className="mr-1.5 text-muted tabular">{x.id.slice(0, 2)}</span>{x.title}</span>
@@ -124,6 +134,9 @@ export default function SqlPage() {
                     <CardContent className="flex flex-col gap-4">
                       <pre className="max-h-[420px] overflow-auto rounded-md border border-border p-3 font-mono text-[11.5px] leading-relaxed text-secondary" data-testid="query-sql">{q.sql}</pre>
                       {q.status === "ok" ? (
+                        <div className="flex justify-end"><CsvButton filename={`${q.id}.csv`} columns={q.columns} rows={q.rows} /></div>
+                      ) : null}
+                      {q.status === "ok" ? (
                         <Table>
                           <THead><TR>{q.columns.map((c: string) => <TH key={c} className="font-mono text-[11px]">{c}</TH>)}</TR></THead>
                           <TBody>
@@ -141,6 +154,7 @@ export default function SqlPage() {
           ) : null}
         </DataState>
       </div>
+      <NextStep />
     </>
   );
 }

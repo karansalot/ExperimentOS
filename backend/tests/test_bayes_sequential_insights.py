@@ -99,3 +99,27 @@ def test_new_endpoints(client):
     s = client.post("/api/sequential", json={"n_looks": 5}).json()
     assert [d["id"] for d in s["designs"]] == ["naive", "pocock", "obrien_fleming"]
     assert client.post("/api/sequential", json={"n_looks": 500}).status_code == 422
+
+
+def test_static_export_mirrors_the_api(pipeline_run, tmp_path):
+    """The hosted build reads these files instead of calling the API; they must cover every route."""
+    import json
+
+    import numpy as np
+
+    from experimentos import export_static
+
+    out = tmp_path / "data"
+    export_static.export(out)
+    meta = json.loads((out / "meta.json").read_text())
+    assert [s["name"] for s in meta["scopes"]] == ["full"]
+    d = out / "full"
+    for name in ("overview", "diagnostics", "data-quality", "sql", "insights", "segments.visit", "models.conversion", "curves.visit", "explain.visit"):
+        assert (d / f"{name}.json").exists(), name
+    assert len(list((d / "sql").glob("*.json"))) >= 15
+    index = json.loads((d / "boot-index.json").read_text())
+    entry = index["visit.valid.adjusted"]
+    arr = np.frombuffer((d / entry["file"]).read_bytes(), dtype="<f4").reshape(entry["shape"])
+    npz = np.load(pipeline_run.artifacts / "bootstrap_valid_visit.npz")
+    m = entry["models"].index("t_learner_gbm")
+    np.testing.assert_array_equal(arr[m], npz["t_learner_gbm__adjusted"])

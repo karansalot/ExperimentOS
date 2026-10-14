@@ -3,14 +3,16 @@
 import * as React from "react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartTooltip } from "@/components/charts/tooltip";
-import { Callout, DataState, PageHeader, StatTile } from "@/components/page";
+import { Callout, DataState, NextStep, PageHeader, StatTile } from "@/components/page";
 import { useApp } from "@/components/providers";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/form";
 import { Slider } from "@/components/ui/slider";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { api } from "@/lib/api";
 import { OUTCOME_LABEL, compact, int, num, pct, pp } from "@/lib/format";
+import { Term } from "@/components/term";
 
 type Design = { outcome: string; base_rate_pct: string; mde_pct: string; share: number; alpha: number; power: number; users_per_day: string };
 const DEFAULT: Design = { outcome: "visit", base_rate_pct: "", mde_pct: "5", share: 50, alpha: 0.05, power: 0.8, users_per_day: "" };
@@ -39,14 +41,12 @@ export default function PlannerPage() {
     setLoading(true);
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/plan?scope=${scope}`, { method: "POST", headers: { "Content-Type": "application/json" }, body });
-        const json = await res.json();
+        const json = await api(`/plan?scope=${scope}`, { method: "POST", body });
         if (cancelled) return;
-        if (!res.ok) throw new Error(typeof json.detail === "string" ? json.detail : "Enter a base rate between 0 and 100% and a positive effect to detect.");
         setData(json);
         setError(null);
       } catch (e: any) {
-        if (!cancelled) setError(e.message);
+        if (!cancelled) setError(e.status === 422 ? `${e.message}. Enter a base rate between 0 and 100% and a positive lift.` : e.message);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -67,6 +67,15 @@ export default function PlannerPage() {
         title="Experiment planner"
         description="How many users does the next test need? Size a two-arm experiment before running it, and see what the unbalanced 85/15 design costs in sample."
         meta={data?.meta}
+        summary={
+          data && r
+            ? [
+                <>To detect a {pct(inp.mde_relative, 0)} relative lift on a {pct(inp.base_rate, 2)} baseline with {pct(inp.power, 0)} <Term k="power">power</Term>, you need about <strong>{compact(r.n_total)} users</strong>{data.days_required != null ? <> ({int(data.days_required)} days at your traffic)</> : null}.</>,
+                <>Putting {pct(inp.treatment_share, 0)} of users in treatment needs {num(data.allocation_cost, 2)}× the users of a 50/50 split.</>,
+                <>The existing experiment could detect a lift as small as {pp(obs.mde_absolute)} (its <Term k="mde">minimum detectable effect</Term>).</>,
+              ]
+            : null
+        }
       />
       <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
         <Card className="no-print self-start xl:sticky xl:top-6">
@@ -196,6 +205,7 @@ export default function PlannerPage() {
           ) : null}
         </DataState>
       </div>
+      <NextStep />
     </>
   );
 }

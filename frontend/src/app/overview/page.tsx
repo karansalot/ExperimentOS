@@ -3,13 +3,14 @@
 import * as React from "react";
 import { ForestPlot } from "@/components/charts/forest";
 import { RateBars } from "@/components/charts/rate-bars";
-import { Callout, DataState, Legend, PageHeader, StatTile, StatusBadge } from "@/components/page";
+import { Callout, DataState, Legend, NextStep, PageHeader, StatTile, StatusBadge } from "@/components/page";
 import { useApp } from "@/components/providers";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApi, withScope } from "@/lib/api";
 import { OUTCOME_LABEL, int, pct, pp, pval, signedPct } from "@/lib/format";
+import { Term } from "@/components/term";
 
 const ESTIMATOR_SHORT: Record<string, string> = {
   "Unadjusted difference in proportions": "Unadjusted",
@@ -29,6 +30,17 @@ export default function OverviewPage() {
         title="Experiment overview"
         description="Did assignment to treatment change behaviour, by how much, and how sure are we? Intent-to-treat comparison of the treatment and control arms."
         meta={data?.meta}
+        summary={
+          data
+            ? [
+                <>Ads raised the visit rate from {pct(e.outcomes.visit.rate_control, 2)} to {pct(e.outcomes.visit.rate_treatment, 2)}: about <strong>{pp(e.outcomes.visit.absolute_effect, 2)}</strong> (<Term k="pp">percentage points</Term>), or {signedPct(e.outcomes.visit.relative_effect, 0)} relative.</>,
+                ...(data.adjusted?.visit
+                  ? [<>The two groups are not perfectly alike, so the fairer, <Term k="adjusted">adjusted</Term> estimate is <strong>{pp(data.adjusted.visit.estimators.find((x: any) => x.method.startsWith("AIPW")).estimate, 2)}</strong>. Use that one for planning.</>]
+                  : []),
+                <>There is essentially no chance ads did nothing: the <Term k="bayes">Bayesian</Term> probability that treatment is better is {data.bayes.visit.prob_treatment_better > 0.9999 ? "above 99.99%" : pct(data.bayes.visit.prob_treatment_better, 2)}.</>,
+              ]
+            : null
+        }
       />
       <DataState loading={loading} error={error} hasData={!!data}>
         {data ? (
@@ -265,6 +277,7 @@ export default function OverviewPage() {
           </div>
         ) : null}
       </DataState>
+      <NextStep />
     </>
   );
 }

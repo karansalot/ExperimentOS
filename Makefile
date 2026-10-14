@@ -2,7 +2,7 @@ PY ?= .venv/bin/python
 API_PORT ?= 8765
 WEB_PORT ?= 3000
 
-.PHONY: help setup data pipeline-sample pipeline-full reports screenshots api web test test-e2e lint clean
+.PHONY: help setup data pipeline-sample pipeline-full reports static deploy screenshots api web test test-e2e lint clean
 
 help:
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-18s %s\n", $$1, $$2}'
@@ -26,6 +26,13 @@ pipeline-full: ## statistics + models + SQL on all 13,979,592 rows (~12 min, ~6 
 reports: ## regenerate docs/*_REPORT.md and docs/RESULTS.md from full-scope artifacts
 	cd backend && ../$(PY) -m experimentos.pipeline reports
 
+static: ## export cached data for the hosted build and build the static site into frontend/out
+	cd backend && ../$(PY) -m experimentos.export_static ../frontend/public/data
+	cd frontend && pnpm build:static
+
+deploy: static ## build and deploy the static site to Netlify (needs `netlify login` and NETLIFY_SITE_ID)
+	netlify deploy --prod --dir frontend/out --site $(NETLIFY_SITE_ID) --no-build
+
 screenshots: ## regenerate docs/images from the running dashboard (WEB_PORT)
 	cd frontend && node scripts/screenshots.mjs http://localhost:$(WEB_PORT)
 
@@ -35,8 +42,9 @@ api: ## run the FastAPI service
 web: ## run the Next.js dashboard (expects the API on API_PORT)
 	cd frontend && API_URL=http://127.0.0.1:$(API_PORT) pnpm dev -p $(WEB_PORT)
 
-test: ## backend unit, statistical and integration tests
+test: ## backend tests + TypeScript parity tests
 	cd backend && ../$(PY) -m pytest
+	cd frontend && pnpm test
 
 test-e2e: ## Playwright end-to-end tests against the real API and committed artifacts
 	cd frontend && API_PORT=$(API_PORT) WEB_PORT=$(WEB_PORT) pnpm test:e2e

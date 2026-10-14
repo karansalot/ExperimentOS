@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { CurveChart } from "@/components/charts/curve-chart";
 import { SensitivityHeatmap, Tornado } from "@/components/charts/sensitivity";
-import { Callout, DataState, PageHeader, StatTile } from "@/components/page";
+import { Callout, DataState, NextStep, PageHeader, StatTile } from "@/components/page";
 import { SavedScenarios } from "@/components/saved-scenarios";
 import { ScenarioForm, useScenarioResult } from "@/components/scenario-form";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { compact, int, money, num, pct, pp } from "@/lib/format";
+import { Term } from "@/components/term";
+import { CsvButton } from "@/components/csv-button";
 
 export default function SimulatorPage() {
   const { data: r, error, loading } = useScenarioResult<any>("/simulate");
@@ -30,6 +32,19 @@ export default function SimulatorPage() {
         title="Targeting simulator"
         description="Who should receive the treatment, and is it worth it? Combine the held-out uplift curves with your own cost and value assumptions."
         meta={r?.meta}
+        summary={
+          r
+            ? [
+                rec.action === "hold"
+                  ? <>With your numbers, <strong>don&apos;t treat anyone</strong>: no group of users responds enough to pay for the treatment.</>
+                  : rec.action === "roll_out"
+                  ? <>With your numbers, <strong>treat everyone</strong>: even the average user responds enough to pay for it.</>
+                  : <>With your numbers, <strong>treat the top {rec.targeting_pct.toFixed(0)}%</strong> of users by predicted uplift, for an estimated profit of {money(rec.profit)} ({money(rec.profit_low)} to {money(rec.profit_high)}).</>,
+                <>Treating someone pays off only if their <Term k="uplift">uplift</Term> beats cost ÷ value = {pp(be.required_effect_per_targeted_user, 2)}; the average user gives {pp(be.population_average_effect, 2)}.</>,
+                <>All money figures come from your scenario inputs. The dataset has no prices or costs.</>,
+              ]
+            : null
+        }
       />
       <div className="grid gap-4 xl:grid-cols-[300px_1fr]">
         <Card className="no-print self-start xl:sticky xl:top-6">
@@ -44,7 +59,7 @@ export default function SimulatorPage() {
           {r ? (
             <div className="flex flex-col gap-4">
               <Callout tone="warning" title="Scenario estimates, not measured financial results" testId="scenario-disclaimer">
-                Incremental {s.outcome}s are estimated from {int(r.meta.evaluation_rows)} held-out users and scaled to a population of {int(s.population)}. Cost, value and profit follow from the assumptions on the left.
+                Incremental {s.outcome}s are estimated from {int(r.meta.evaluation_rows)} held-out users and scaled to a population of {int(s.population)}. Cost, value and profit follow from your scenario assumptions.
               </Callout>
 
               {r.budget.capped_by_budget ? (
@@ -116,7 +131,14 @@ export default function SimulatorPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Strategy comparison at {sel.targeting_pct.toFixed(0)}% coverage</CardTitle>
-                  <CardDescription>Same budget and coverage, different ways of choosing who is treated. The last columns show each strategy at its own best coverage.</CardDescription>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <CardDescription>Same budget and coverage, different ways of choosing who is treated. The last columns show each strategy at its own best coverage.</CardDescription>
+                    <CsvButton
+                      filename="strategy-comparison.csv"
+                      columns={["strategy", "coverage_pct", "incremental_outcomes", "treatment_cost", "profit", "profit_low", "profit_high", "roi", "best_coverage_pct", "profit_at_best", "feasible"]}
+                      rows={r.strategies.map((x: any) => [x.name, x.targeting_pct, x.incremental_outcomes, x.treatment_cost, x.profit, x.profit_low, x.profit_high, x.roi ?? "", x.optimum?.targeting_pct ?? "", x.optimum?.profit ?? "", x.feasible])}
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <Table data-testid="strategy-table">
@@ -209,6 +231,7 @@ export default function SimulatorPage() {
           ) : null}
         </DataState>
       </div>
+      <NextStep />
     </>
   );
 }

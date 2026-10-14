@@ -1,0 +1,28 @@
+# Netlify hosts the static build of the dashboard: cached analysis data plus in-browser calculators.
+# No Python service is needed. Deploy from the CLI with the prebuilt site, or connect the repo for git deploys.
+[build]
+  base = "frontend"
+  command = "corepack enable && pnpm install --frozen-lockfile && pnpm build:static"
+  publish = "out"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_PUBLIC_DATA_MODE = "static"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"

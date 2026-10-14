@@ -3,7 +3,7 @@ import type { Config } from "tailwindcss";
 const v = (name: string) => `var(--${name})`;
 
 const config: Config = {
-  darkMode: "media",
+  darkMode: ["class", '[data-theme="dark"]'],
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
@@ -17,6 +17,7 @@ const config: Config = {
         grid: v("grid"),
         accent: v("accent"),
         "accent-soft": v("accent-soft"),
+        wash: v("wash"),
         good: v("good"),
         warning: v("warning"),
         critical: v("critical"),
