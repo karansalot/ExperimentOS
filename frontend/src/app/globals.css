@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --border: rgba(11, 11, 11, 0.1);
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --accent: #2a78d6;
+  --accent-soft: #cde2fb;
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --serious: #ec835a;
+  --critical: #d03b3b;
+  /* categorical series, fixed by entity (validated light + dark with the dataviz palette checker) */
+  --series-treatment: #2a78d6;
+  --series-control: #eb6834;
+  --series-t-learner: #2a78d6;
+  --series-response: #eb6834;
+  --series-two-model: #1baf7a;
+  --series-s-learner: #4a3aa7;
+  --series-random: #898781;
+  /* diverging: blue <-> red around a neutral midpoint */
+  --div-pos: #2a78d6;
+  --div-neg: #e34948;
+  --div-mid: #f0efec;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --border: rgba(255, 255, 255, 0.1);
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --accent: #3987e5;
+    --accent-soft: #184f95;
+    --good-text: #0ca30c;
+    --series-treatment: #3987e5;
+    --series-control: #d95926;
+    --series-t-learner: #3987e5;
+    --series-response: #d95926;
+    --series-two-model: #199e70;
+    --series-s-learner: #9085e9;
+    --div-pos: #3987e5;
+    --div-neg: #e66767;
+    --div-mid: #383835;
+  }
+}
+
+body {
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+.recharts-cartesian-axis-tick-value { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.recharts-cartesian-grid line { stroke: var(--grid); }
+.recharts-label { fill: var(--text-secondary); font-size: 11px; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0 !important; }
+}
+
+/* Status tones: colour is always paired with an icon and a label. */
+.tone-good { border-color: color-mix(in srgb, var(--good) 45%, transparent); background: color-mix(in srgb, var(--good) 10%, transparent); }
+.tone-warning { border-color: color-mix(in srgb, var(--warning) 60%, transparent); background: color-mix(in srgb, var(--warning) 14%, transparent); }
+.tone-critical { border-color: color-mix(in srgb, var(--critical) 55%, transparent); background: color-mix(in srgb, var(--critical) 10%, transparent); }
+
+/* Grid and flex children default to min-width:auto, which lets a wide table or chart push the page sideways on phones. */
+main .grid > *, main .flex > * { min-width: 0; }

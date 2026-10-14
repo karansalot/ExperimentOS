@@ -1,0 +1,14 @@
+services:
+  api:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    ports: ["8765:8765"]
+    environment:
+      EXPERIMENTOS_CORS_ORIGINS: "http://localhost:3000"
+    # Mount ./data to enable on-demand retraining on the development sample:
+    # volumes: ["./data:/app/data:ro"]
+  web:
+    build:
+      context: frontend
+      args: { API_URL: "http://api:8765" }
+    ports: ["3000:3000"]
+    depends_on: [api]
