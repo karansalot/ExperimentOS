@@ -19,7 +19,7 @@ MIN_CONTROL_FOR_SEGMENT = 1000
 
 def _arms(con: duckdb.DuckDBPyConnection) -> dict:
     rel = con.sql("SELECT * FROM v_arm_summary")
-    rows = [dict(zip(rel.columns, r)) for r in rel.fetchall()]
+    rows = [dict(zip(rel.columns, r, strict=False)) for r in rel.fetchall()]
     by = {r["arm"]: r for r in rows}
     if set(by) != {"treatment", "control"}:
         raise ValueError(f"Expected exactly a treatment and a control arm, found {sorted(by)}")
@@ -36,7 +36,7 @@ def effects(con: duckdb.DuckDBPyConnection) -> dict:
         test["mde"] = proportions.minimum_detectable_effect(t["n_users"], c["n_users"], test["rate_control"], config.ALPHA)
         outcomes[name] = test
     adj = multiple.adjust_pvalues([outcomes[o]["p_value"] for o in config.OUTCOMES], "holm")
-    for o, p in zip(config.OUTCOMES, adj):
+    for o, p in zip(config.OUTCOMES, adj, strict=False):
         outcomes[o]["p_value_holm"] = float(p)
         outcomes[o]["significant_after_holm"] = bool(p < config.ALPHA)
 
@@ -46,7 +46,7 @@ def effects(con: duckdb.DuckDBPyConnection) -> dict:
         "SELECT sum(exposure * visit), sum(exposure * conversion) FROM experiment WHERE treatment = 1"
     ).fetchone()
     cace = {}
-    for name, both in zip(["visit", "conversion"], joint):
+    for name, both in zip(["visit", "conversion"], joint, strict=False):
         o = outcomes[name]
         cace[name] = compliance.wald_cace(
             o["absolute_effect"], o["std_error"], t["n_users"], t["exposures"], float(both), o["rate_treatment"],
@@ -85,7 +85,7 @@ def balance_table(con: duckdb.DuckDBPyConnection) -> list[dict]:
     ).fetchall()
     table = [balance.balance_row(*r) for r in rows]
     adj = multiple.adjust_pvalues([r["p_value"] for r in table], "holm")
-    for r, p in zip(table, adj):
+    for r, p in zip(table, adj, strict=False):
         r["p_value_holm"] = float(p)
     return table
 
@@ -139,7 +139,7 @@ def segment_effects(con: duckdb.DuckDBPyConnection, scope: Optional[config.Scope
     """Per-feature segment effects with FDR control and a heterogeneity test per feature."""
     adjusted = adjusted_segment_stats(con, scope) if scope is not None else {}
     rel = con.sql("SELECT * FROM v_segment_arm_stats ORDER BY CAST(substr(feature, 2) AS INTEGER), segment_id, treatment")
-    rows = [dict(zip(rel.columns, r)) for r in rel.fetchall()]
+    rows = [dict(zip(rel.columns, r, strict=False)) for r in rel.fetchall()]
     cells: dict = {}
     for r in rows:
         cells.setdefault((r["feature"], r["segment_id"]), {})[r["treatment"]] = r
@@ -170,7 +170,7 @@ def segment_effects(con: duckdb.DuckDBPyConnection, scope: Optional[config.Scope
             )
         for method in ("bh", "holm"):
             adj = multiple.adjust_pvalues([s["p_value"] for s in segs], method)
-            for s, p in zip(segs, adj):
+            for s, p in zip(segs, adj, strict=False):
                 s[f"p_value_{method}"] = float(p)
         features = []
         for feature in config.FEATURES:
@@ -181,7 +181,7 @@ def segment_effects(con: duckdb.DuckDBPyConnection, scope: Optional[config.Scope
         q_adj = multiple.adjust_pvalues(
             [1.0 if f["heterogeneity"]["p_value"] is None else f["heterogeneity"]["p_value"] for f in features], "holm"
         )
-        for f, p in zip(features, q_adj):
+        for f, p in zip(features, q_adj, strict=False):
             f["heterogeneity"]["p_value_holm"] = float(p)
         out[outcome] = {
             "features": features,

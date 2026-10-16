@@ -30,7 +30,7 @@ def test_naive_peeking_inflates_false_positives_monotonically():
     r = sequential.simulate(n_looks=10, sims=40_000)
     curve = [c["false_positive_rate"] for c in r["naive_fpr_by_looks"]]
     assert curve[0] == pytest.approx(0.05, abs=0.006)
-    assert all(b >= a - 0.005 for a, b in zip(curve, curve[1:]))
+    assert all(b >= a - 0.005 for a, b in zip(curve, curve[1:], strict=False))
     assert next(c for c in r["naive_fpr_by_looks"] if c["looks"] == 10)["false_positive_rate"] == pytest.approx(0.193, abs=0.012)
 
 

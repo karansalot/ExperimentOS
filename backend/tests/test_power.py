@@ -13,7 +13,7 @@ def test_required_sample_size_reaches_target_power_by_simulation():
     sims = 4_000
     xt = rng.binomial(need["n_treatment"], base + delta, sims)
     xc = rng.binomial(need["n_control"], base, sims)
-    rejected = sum(proportions.two_proportion_test(a, need["n_treatment"], b, need["n_control"])["significant"] for a, b in zip(xt, xc))
+    rejected = sum(proportions.two_proportion_test(a, need["n_treatment"], b, need["n_control"])["significant"] for a, b in zip(xt, xc, strict=False))
     assert rejected / sims == pytest.approx(0.8, abs=0.025)
     assert need["achieved_power"] >= 0.8 - 1e-9 and need["n_treatment"] + need["n_control"] == need["n_total"]
 

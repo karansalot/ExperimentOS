@@ -8,9 +8,9 @@ It answers the questions a growth team asks after a randomised test: *did it wor
 
 [![Live demo](https://img.shields.io/badge/live%20demo-netlify-00C7B7)](https://experimentos-karansalot.netlify.app)
 [![CI](https://github.com/karansalot/ExperimentOS/actions/workflows/ci.yml/badge.svg)](https://github.com/karansalot/ExperimentOS/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.9%20%7C%203.12-blue)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
-![Tests](https://img.shields.io/badge/tests-120%20backend%20%C2%B7%2015%20parity%20%C2%B7%2022%20e2e-brightgreen)
+![Python](https://img.shields.io/badge/python-3.10%20%7C%203.12-blue)
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
+![Tests](https://img.shields.io/badge/tests-123%20backend%20%C2%B7%2016%20unit%20%C2%B7%2023%20e2e-brightgreen)
 ![Data](https://img.shields.io/badge/data-13.98M%20rows%2C%20no%20sampling-orange)
 
 ![Insights page](docs/images/insights.png)
@@ -107,9 +107,9 @@ flowchart LR
 | Uplift modelling and explainability | scikit-learn | `backend/experimentos/uplift/` |
 | Decision support | Python | `simulator/`, `brief.py`, `insights.py`, `stats/power.py`, `stats/sequential.py` |
 | API | FastAPI, Pydantic | `backend/experimentos/api/main.py` |
-| Dashboard | Next.js 14, TypeScript, Tailwind, shadcn-style components (Radix), Recharts | `frontend/` |
+| Dashboard | Next.js 15, React 19, TypeScript, Tailwind, shadcn-style components (Radix), Recharts | `frontend/` |
 | Hosting | Static export + in-browser calculators on Netlify | `export_static.py`, `frontend/src/lib/static/`, `netlify.toml` |
-| Quality | pytest (120), Vitest parity (15), Playwright (22, run against the Python app, the static build and the live site), ruff, ESLint, GitHub Actions | `backend/tests/`, `frontend/src/lib/static/parity.test.ts`, `frontend/e2e/` |
+| Quality | pytest (123), Vitest (16, incl. parity), Playwright (23, run against the Python app, the static build and the live site), ruff, ESLint, pip-audit, pnpm audit, Dependabot, GitHub Actions | `backend/tests/`, `frontend/src/lib/static/parity.test.ts`, `frontend/e2e/` |
 
 ---
 
@@ -136,7 +136,7 @@ Full detail, assumptions and limitations: [docs/METHODOLOGY.md](docs/METHODOLOGY
 
 ## Quick start
 
-Requirements: Python 3.9+, Node 20+, pnpm.
+Requirements: Python 3.10+ (3.12 recommended), Node 20+, pnpm.
 
 ```bash
 git clone https://github.com/karansalot/ExperimentOS && cd ExperimentOS
@@ -152,8 +152,9 @@ make data             # download 311 MB (sha256-verified) and build Parquet
 make pipeline-sample  # ~5% development sample, ~20 s
 make pipeline-full    # all 13,979,592 rows, ~12 min on a 10-core laptop
 make reports          # regenerate docs/RESULTS.md, INSIGHTS.md and the reports
-make test             # 120 backend tests + 15 TypeScript-vs-Python parity tests
-make test-e2e         # 22 Playwright tests against the real API
+make test             # 123 backend tests + 16 frontend unit tests (incl. TypeScript-vs-Python parity)
+make test-e2e         # 23 Playwright tests against the real API
+make audit            # known-vulnerability scan of Python and JavaScript dependencies
 make static           # export data and build the hosted (static) site into frontend/out
 ```
 
@@ -186,6 +187,7 @@ The result: a 10 MB site with no server, identical numbers, and instant interact
 | [Three-minute demo script](docs/DEMO_SCRIPT.md) | a timed walkthrough |
 | [Deployment guide](docs/DEPLOYMENT.md) | local, containers, configuration, CI |
 | [Implementation status](IMPLEMENTATION_STATUS.md) | what is done, verified and still open |
+| [Security](SECURITY.md) | attack surface, controls, accepted findings, how to report |
 
 ---
 

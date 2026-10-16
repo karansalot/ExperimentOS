@@ -1,14 +1,15 @@
 PY ?= .venv/bin/python
+PYTHON ?= python3.12  # any Python >= 3.10
 API_PORT ?= 8765
 WEB_PORT ?= 3000
 
-.PHONY: help setup data pipeline-sample pipeline-full reports static deploy screenshots api web test test-e2e lint clean
+.PHONY: audit help setup data pipeline-sample pipeline-full reports static deploy screenshots api web test test-e2e lint clean
 
 help:
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-18s %s\n", $$1, $$2}'
 
 setup: ## create the virtualenv and install backend + frontend dependencies
-	python3 -m venv .venv
+	$(PYTHON) -m venv .venv
 	$(PY) -m pip install --upgrade pip
 	$(PY) -m pip install -e "backend[dev]"
 	cd frontend && pnpm install
@@ -48,6 +49,10 @@ test: ## backend tests + TypeScript parity tests
 
 test-e2e: ## Playwright end-to-end tests against the real API and committed artifacts
 	cd frontend && API_PORT=$(API_PORT) WEB_PORT=$(WEB_PORT) pnpm test:e2e
+
+audit: ## known-vulnerability scan of Python and production JavaScript dependencies
+	cd backend && ../.venv/bin/pip-audit --skip-editable
+	cd frontend && pnpm audit --prod
 
 lint: ## ruff + TypeScript + ESLint
 	cd backend && ../$(PY) -m ruff check .

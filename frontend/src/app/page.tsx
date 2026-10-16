@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, Github } from "lucide-react";
+import { ArrowRight, FolderGit2 } from "lucide-react";
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartTooltip } from "@/components/charts/tooltip";
 import { DataState, Legend, NextStep } from "@/components/page";
@@ -120,7 +120,7 @@ export default function InsightsPage() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 id="how" className="text-sm font-semibold">How it was built</h2>
               <a href="https://github.com/karansalot/ExperimentOS" className="inline-flex items-center gap-1.5 text-xs font-medium text-accent" target="_blank" rel="noreferrer">
-                <Github className="h-3.5 w-3.5" aria-hidden /> Source on GitHub
+                <FolderGit2 className="h-3.5 w-3.5" aria-hidden /> Source on GitHub
               </a>
             </div>
             <ol className="mt-4 grid gap-3 sm:grid-cols-5">

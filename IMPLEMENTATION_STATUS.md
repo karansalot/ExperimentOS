@@ -1,6 +1,6 @@
 # Implementation status
 
-Last updated: 2026-10-14. Scope of verified results: **full dataset, 13,979,592 rows** (plus a labelled ~5% development sample).
+Last updated: 2026-10-15. Scope of verified results: **full dataset, 13,979,592 rows** (plus a labelled ~5% development sample).
 
 ## Verification state
 
@@ -10,11 +10,11 @@ Last updated: 2026-10-14. Scope of verified results: **full dataset, 13,979,592 
 | Row count / rates vs dataset card | 13,979,592 rows; treatment 0.85; visit 0.046992; conversion 0.00292 | `pytest backend/tests/test_real_data.py` |
 | Data-quality rules | 12 of 12 pass on the full dataset | `artifacts/full/data_quality.json` |
 | SQL layer | 20 of 20 queries run on full and sample | `make pipeline-full` |
-| Backend tests | 120 pass (synthetic ground-truth fixture + real-data checks) |
-| TypeScript parity tests | 15 pass: the in-browser simulator, brief and planner match Python to 1e-6 | `cd frontend && pnpm test` | `make test` |
+| Backend tests | 123 pass (synthetic ground-truth fixture + real-data checks) |
+| Frontend unit tests | 16 pass, incl. 15 parity tests: the in-browser simulator, brief and planner match Python to 1e-6 | `cd frontend && pnpm test` | `make test` |
 | Lint / types | ruff, tsc, ESLint clean | `make lint` |
 | Production build | succeeds | `cd frontend && pnpm build` |
-| End-to-end tests | 22 pass against the Python-backed app, the static build, and the live Netlify site | `make test-e2e` |
+| End-to-end tests | 23 pass against the Python-backed app, the static build, and the live Netlify site | `make test-e2e` |
 | GitHub Actions | workflow written, **not yet executed**: runs on the first push | push to GitHub |
 | Docker images | files written, **not built** (Docker unavailable locally) | `docker compose up --build` |
 | Hosting | **live** at https://experimentos-karansalot.netlify.app (static build) | `make static && netlify deploy --prod --dir frontend/out` |
@@ -84,6 +84,15 @@ The Overview page moved from `/` to `/overview`.
 | TypeScript port of the decision simulator, brief, planner and sequential lab | `frontend/src/lib/static/` | 15 Vitest parity tests against Python fixtures |
 | Netlify deployment with cache and security headers | `netlify.toml` | e2e suite run against the live URL |
 | Usability: plain-English summaries, glossary popovers and page, first-visit guide, next-step links, theme switch, mobile drawer, presets, CSV export, skeleton loaders, skip link | `frontend/src/components/` | 7 usability e2e tests |
+
+## Security hardening (2026-10-15)
+
+- Next.js 14.2.15 → 15.5.28 and React 19 (cleared 6 critical advisories); `pnpm audit --prod` clean.
+- Backend moved to Python ≥ 3.10 (3.12 locally) with security floors for Starlette, anyio, pyarrow, python-dotenv and pytest; `pip-audit` clean.
+- Security headers on the hosted site (CSP, HSTS, frame denial, Permissions-Policy, COOP) and in the API; on-demand training can be disabled (`EXPERIMENTOS_ENABLE_TRAINING=0`).
+- CSV formula-injection guard; manifests store project-relative paths; read-only CI token; Dependabot; dependency-audit CI job; `SECURITY.md`.
+- Fixed a `.gitignore` rule that had excluded `backend/experimentos/data/` and `frontend/public/data/` from the repository.
+- Host-injected markup (Netlify) no longer causes React hydration errors; a test asserts zero page errors.
 
 ## Deviations from the brief, and why
 

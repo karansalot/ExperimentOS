@@ -26,6 +26,19 @@ app.add_middleware(
     allow_methods=["*"], allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Cache-Control", "no-store" if request.method != "GET" else "public, max-age=60")
+    return response
+
+
+# On-demand training is CPU-heavy and unauthenticated: disable it on any shared deployment.
+TRAINING_ENABLED = os.environ.get("EXPERIMENTOS_ENABLE_TRAINING", "1") != "0"
+
 _cache: dict = {}
 _cache_lock = threading.Lock()
 
@@ -326,6 +339,8 @@ def _run_training(seed: int, n_boot: int) -> None:
 @app.post("/api/train", status_code=202)
 def start_training(body: TrainIn) -> dict:
     scope = config.get_scope("dev_sample")
+    if not TRAINING_ENABLED:
+        raise HTTPException(403, "On-demand training is disabled on this deployment (EXPERIMENTOS_ENABLE_TRAINING=0).")
     if not scope.parquet.exists():
         raise HTTPException(409, "Row-level data is not present on this server (artifact-only deployment). "
                                  "Run the download and ingest steps to enable training.")
@@ -343,6 +358,6 @@ def start_training(body: TrainIn) -> dict:
 def training_status() -> dict:
     with _job_lock:
         job = dict(_job)
-    job["can_train"] = config.get_scope("dev_sample").parquet.exists()
+    job["can_train"] = TRAINING_ENABLED and config.get_scope("dev_sample").parquet.exists()
     job["trainable_scope"] = "dev_sample"
     return job

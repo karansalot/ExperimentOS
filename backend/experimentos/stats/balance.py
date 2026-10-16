@@ -76,6 +76,6 @@ def classifier_two_sample_test(t: np.ndarray, out_of_fold_propensity: np.ndarray
         "p_value": float(st.norm.sf(z)),  # one-sided: AUC > 0.5
         "n_scored": int(t.size),
         "propensity_quantiles": {
-            k: float(v) for k, v in zip(["min", "p01", "p05", "p25", "p50", "p75", "p95", "p99", "max"], q)
+            k: float(v) for k, v in zip(["min", "p01", "p05", "p25", "p50", "p75", "p95", "p99", "max"], q, strict=False)
         },
     }

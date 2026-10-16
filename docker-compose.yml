@@ -4,6 +4,7 @@ services:
     ports: ["8765:8765"]
     environment:
       EXPERIMENTOS_CORS_ORIGINS: "http://localhost:3000"
+      EXPERIMENTOS_ENABLE_TRAINING: "0"  # unauthenticated, CPU-heavy: keep off on shared deployments
     # Mount ./data to enable on-demand retraining on the development sample:
     # volumes: ["./data:/app/data:ro"]
   web:

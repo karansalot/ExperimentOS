@@ -99,7 +99,7 @@ def test_every_query_runs(pipeline_run):
 def test_sql_effect_matches_python_engine(pipeline_run):
     sql = {q["id"]: q for q in artifacts.read("full", "sql")["data"]["queries"]}
     q = sql["05_ate_two_proportion"]
-    row = dict(zip(q["columns"], next(r for r in q["rows"] if r[0] == "visit")))
+    row = dict(zip(q["columns"], next(r for r in q["rows"] if r[0] == "visit"), strict=False))
     eff = artifacts.read("full", "experiment")["data"]["outcomes"]["visit"]
     assert row["absolute_effect"] == pytest.approx(eff["absolute_effect"], abs=1e-6)
     assert row["z_statistic"] == pytest.approx(eff["z_statistic"], abs=0.01)

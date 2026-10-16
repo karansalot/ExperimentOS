@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
-  Activity, AlertTriangle, BookOpen, Calculator, Database, FileText, FlaskConical, Github, Lightbulb, LineChart, Menu, Monitor, Moon,
+  Activity, AlertTriangle, BookOpen, Calculator, Database, FileText, FlaskConical, FolderGit2, Lightbulb, LineChart, Menu, Monitor, Moon,
   SlidersHorizontal, Stethoscope, Sun, Timer, X,
 } from "lucide-react";
 import { useApp, type Theme } from "@/components/providers";
@@ -124,7 +124,7 @@ function SidebarFooter() {
       <div className="flex items-center justify-between gap-2 pt-1">
         <ThemeSwitch />
         <a href="https://github.com/karansalot/ExperimentOS" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-secondary hover:text-foreground" aria-label="Source code on GitHub">
-          <Github className="h-3.5 w-3.5" aria-hidden /> Source
+          <FolderGit2 className="h-3.5 w-3.5" aria-hidden /> Source
         </a>
       </div>
       <p className="text-[11px] leading-snug text-muted">

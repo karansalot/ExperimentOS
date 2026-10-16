@@ -79,7 +79,7 @@ def test_coverage_is_chosen_on_validation_and_measured_on_test(pipeline_run):
 def test_score_cutoffs_are_monotone_and_reported(pipeline_run, base):
     cs = load_curves("full", "visit", "adjusted")
     t = cs.thresholds[cs.champion]
-    assert t[0] is None and all(a >= b for a, b in zip(t[1:], t[2:]))
+    assert t[0] is None and all(a >= b for a, b in zip(t[1:], t[2:], strict=False))
     rule = base["targeting_rule"]
     assert rule["score_kind"] == "predicted uplift" and rule["selected_cutoff"] == t[30]
     assert "random" not in cs.thresholds
@@ -157,3 +157,25 @@ def test_api_never_returns_row_level_data(client):
     """Payloads are aggregates: nothing should scale with the number of rows."""
     for url in ["/api/overview", "/api/segments", "/api/models", "/api/curves", "/api/diagnostics"]:
         assert len(client.get(url).content) < 400_000
+
+
+def test_api_sets_security_headers(client):
+    r = client.get("/api/health")
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["x-frame-options"] == "DENY"
+    assert r.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+
+
+def test_training_can_be_disabled(client, monkeypatch):
+    from experimentos.api import main
+
+    monkeypatch.setattr(main, "TRAINING_ENABLED", False)
+    assert client.post("/api/train", json={}).status_code == 403
+    assert client.get("/api/train/status").json()["can_train"] is False
+
+
+def test_manifests_never_contain_absolute_paths(pipeline_run):
+    from experimentos import artifacts
+
+    raw = artifacts.path("full", "dataset").read_text()
+    assert '"path":"/' not in raw.replace(" ", "")

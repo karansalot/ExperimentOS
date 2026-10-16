@@ -213,6 +213,20 @@ test.describe("full dataset", () => {
   });
 });
 
+test.describe("quality", () => {
+  test.beforeEach(async ({ page }) => useScope(page, "full"));
+
+  test("no page throws a JavaScript or hydration error", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(`${page.url()}: ${e.message}`));
+    for (const path of ["/", "/overview", "/diagnostics", "/models", "/simulator", "/brief", "/planner", "/sequential", "/sql", "/glossary"]) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+    }
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe("usability", () => {
   test.beforeEach(async ({ page }) => useScope(page, "full"));
 

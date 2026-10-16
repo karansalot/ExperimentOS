@@ -2,16 +2,12 @@
 
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const esc = (v: unknown) => {
-  const s = v == null ? "" : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
+import { toCsv } from "./csv";
 
 /** Downloads table data as CSV (raw values, not formatted text). */
 export function CsvButton({ filename, columns, rows, label = "CSV" }: { filename: string; columns: string[]; rows: unknown[][]; label?: string }) {
   const download = () => {
-    const text = [columns, ...rows].map((r) => r.map(esc).join(",")).join("\n");
+    const text = toCsv(columns, rows);
     const url = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
     const a = document.createElement("a");
     a.href = url;

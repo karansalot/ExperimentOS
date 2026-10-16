@@ -40,7 +40,7 @@ def test_confidence_interval_coverage_by_simulation():
     p_t, p_c, n_t, n_c, sims = 0.05, 0.04, 8_500, 1_500, 4_000
     xt, xc = rng.binomial(n_t, p_t, sims), rng.binomial(n_c, p_c, sims)
     covered = 0
-    for a, b in zip(xt, xc):
+    for a, b in zip(xt, xc, strict=False):
         r = proportions.two_proportion_test(a, n_t, b, n_c)
         covered += r["ci_low"] <= p_t - p_c <= r["ci_high"]
     assert 0.94 <= covered / sims <= 0.965
@@ -50,7 +50,7 @@ def test_false_positive_rate_under_null():
     rng = np.random.default_rng(2)
     sims = 4_000
     xt, xc = rng.binomial(8_500, 0.04, sims), rng.binomial(1_500, 0.04, sims)
-    rejections = sum(proportions.two_proportion_test(a, 8_500, b, 1_500)["significant"] for a, b in zip(xt, xc))
+    rejections = sum(proportions.two_proportion_test(a, 8_500, b, 1_500)["significant"] for a, b in zip(xt, xc, strict=False))
     assert 0.04 <= rejections / sims <= 0.06
 
 
